@@ -149,3 +149,20 @@ public class App extends Application {
 
         Label savedLabel = new Label("Saved bills");
         savedLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        // Fill in the "in K" labels and the price list for the starting currency.
+        updateCurrencyLabels();
+
+        // ---- Put everything in the window ----
+        VBox content = new VBox(10, title, subtitle, formRow, actionButtons,
+                statusLabel, savedLabel, table);
+        content.setPadding(new Insets(15));
+        VBox.setVgrow(table, Priority.ALWAYS);                     // the table takes spare height
+
+        BorderPane root = new BorderPane();
+        root.setTop(new VBox(menuBar, toolBar));                   // menu bar above toolbar
+        root.setCenter(content);
+
+        stage.setTitle("Lodge Billing Lab");
+        stage.setScene(new Scene(root, 900, 700));
+        stage.show();
+    }   // <- end of the start() method
