@@ -43,3 +43,31 @@ public class App extends Application {
     // Pieces 5b to 5e all go inside this method.
     @Override
     public void start(Stage stage) {
+        // ---- Menu bar: File and Help ----
+        MenuItem exitItem = new MenuItem("Exit");
+        exitItem.setOnAction(e -> Platform.exit());               // closes the app
+        Menu fileMenu = new Menu("_File", null, exitItem);
+
+        MenuItem aboutItem = new MenuItem("About");
+        aboutItem.setOnAction(e -> new Alert(Alert.AlertType.INFORMATION,
+                "Lodge Billing Lab\nBills are kept only until you close the app.").showAndWait());
+        Menu helpMenu = new Menu("_Help", null, aboutItem);
+
+        MenuBar menuBar = new MenuBar(fileMenu, helpMenu);
+
+        // ---- Toolbar: New guest | View receipt | Delete selected bill ----
+        Button newGuestBtn = new Button("New guest");
+        Button viewReceiptBtn = new Button("View receipt");
+        Button deleteBtn = new Button("Delete selected bill");
+        ToolBar toolBar = new ToolBar(newGuestBtn, viewReceiptBtn, deleteBtn);
+
+        // These two buttons are greyed out until a row is selected in the table.
+        viewReceiptBtn.disableProperty().bind(
+                table.getSelectionModel().selectedItemProperty().isNull());
+        deleteBtn.disableProperty().bind(
+                table.getSelectionModel().selectedItemProperty().isNull());
+
+        // Each button calls one of the action methods written in piece 5g.
+        newGuestBtn.setOnAction(e -> onNewGuest());
+        viewReceiptBtn.setOnAction(e -> onViewReceipt());
+        deleteBtn.setOnAction(e -> onDelete());
