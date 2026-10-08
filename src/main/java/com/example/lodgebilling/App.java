@@ -166,3 +166,108 @@ public class App extends Application {
         stage.setScene(new Scene(root, 900, 700));
         stage.show();
     }   // <- end of the start() method
+// ===== Helper methods (they go below start(), still inside the App class) =====
+
+    // Runs at startup and whenever the currency changes. It updates the "in K" labels
+    // and shows the room prices converted into the chosen currency.
+    private void updateCurrencyLabels() {
+        CurrencyType currency = currencyBox.getValue();
+        extrasLabel.setText("_Extras in " + currency.getSymbol() + ":");
+        paidLabel.setText("Amount _paid in " + currency.getSymbol() + ":");
+
+        priceList.getChildren().clear();                           // remove the old price lines
+        for (RoomType room : RoomType.values()) {                  // loop through Standard, Deluxe, Family
+            double price = currency.fromKwacha(room.getPriceKwacha());
+            priceList.getChildren().add(new Label(room + ":  " + currency.format(price) + " per night"));
+        }
+    }
+
+    // Reads the form, checks every input, and builds a Bill.
+    // Returns null (after showing a red message) if anything is wrong.
+    // Both Calculate and Save use this, so the checks are written only once.
+    private Bill readBill(String id) {
+        String guest = nameField.getText().trim();
+        RoomType room = roomBox.getValue();
+        CurrencyType currency = currencyBox.getValue();
+
+        // Check 1: guest name
+        if (guest.isEmpty()) {
+            showError("Guest name is required.", nameField);
+            return null;
+        }
+        // Check 2: a room type must be chosen
+        if (room == null) {
+            showError("Please select a room type.", roomBox);
+            return null;
+        }
+        // Check 3: nights must be a whole number of at least 1
+        int nights;
+        try {
+            nights = Integer.parseInt(nightsField.getText().trim());
+        } catch (NumberFormatException ex) {                       // text like "abc" or "2.5" lands here
+            showError("Nights must be a whole number, e.g. 3.", nightsField);
+            return null;
+        }
+        if (nights < 1) {
+            showError("Nights must be at least 1.", nightsField);
+            return null;
+        }
+        // Check 4 and 5: extras and amount paid must be numbers that are 0 or more
+        Double extras = parseAmount(extrasField.getText());
+        if (extras == null) {
+            showError("Extras must be a number, 0 or more.", extrasField);
+            return null;
+        }
+        Double paid = parseAmount(paidField.getText());
+        if (paid == null) {
+            showError("Amount paid must be a number, 0 or more.", paidField);
+            return null;
+        }
+
+        // All inputs are valid, so build the bill (the maths happens inside Bill).
+        Bill bill = new Bill(id, guest, room, nights, currency, extras, paid, notesArea.getText().trim());
+
+        // Check 6: the guest cannot pay more than the total.
+        if (paid > bill.getTotal() + 0.004) {
+            showError("Amount paid is more than the total (" + currency.format(bill.getTotal()) + ").", paidField);
+            return null;
+        }
+        return bill;
+    }
+
+    // Turns text into a number. Blank text counts as 0. Returns null if it is not a valid
+    // number or is negative.
+    private Double parseAmount(String text) {
+        String trimmed = text.trim();
+        if (trimmed.isEmpty()) return 0.0;
+        try {
+            double value = Double.parseDouble(trimmed);
+            if (value < 0 || Double.isNaN(value) || Double.isInfinite(value)) return null;
+            return value;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    // Shows a red message and puts the cursor in the field that needs fixing.
+    private void showError(String message, Control controlToFocus) {
+        statusLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+        statusLabel.setText(message);
+        controlToFocus.requestFocus();
+    }
+
+    // Shows a green message.
+    private void showSuccess(String message) {
+        statusLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+        statusLabel.setText(message);
+    }
+
+    // Empties the form for the next guest. The currency choice is kept.
+    private void clearForm() {
+        nameField.clear();
+        roomBox.setValue(null);
+        nightsField.clear();
+        extrasField.clear();
+        paidField.clear();
+        notesArea.clear();
+    }
