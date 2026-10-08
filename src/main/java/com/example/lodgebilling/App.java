@@ -71,3 +71,66 @@ public class App extends Application {
         newGuestBtn.setOnAction(e -> onNewGuest());
         viewReceiptBtn.setOnAction(e -> onViewReceipt());
         deleteBtn.setOnAction(e -> onDelete());
+        // ---- Page heading ----
+        Label title = new Label("Lodge Billing Lab");
+        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
+        Label subtitle = new Label("ICT261 Lecture 3  |  Mr E Nyirenda  |  Mulungushi University");
+
+        // ---- Form settings ----
+        currencyBox.setValue(CurrencyType.ZMW);                    // start with kwacha selected
+        currencyBox.setOnAction(e -> updateCurrencyLabels());      // when changed, refresh labels and prices
+        currencyBox.setMaxWidth(Double.MAX_VALUE);                 // let the drop-downs stretch full width
+        roomBox.setMaxWidth(Double.MAX_VALUE);
+        roomBox.setPromptText("Select room type");
+        notesArea.setPrefRowCount(2);
+        notesArea.setWrapText(true);
+
+        // These two labels are kept in fields because their text ("in K" / "in $") changes.
+        extrasLabel = labelFor("_Extras in K:", extrasField);
+        paidLabel = labelFor("Amount _paid in K:", paidField);
+
+        // ---- Form layout: labels in column 0, inputs in column 1 ----
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+        ColumnConstraints labelColumn = new ColumnConstraints(140);   // fixed width for labels
+        ColumnConstraints inputColumn = new ColumnConstraints();
+        inputColumn.setHgrow(Priority.ALWAYS);                        // inputs take the remaining width
+        form.getColumnConstraints().addAll(labelColumn, inputColumn);
+
+        form.addRow(0, labelFor("C_urrency:", currencyBox), currencyBox);
+        form.addRow(1, labelFor("_Guest name:", nameField), nameField);
+        form.addRow(2, labelFor("_Room type:", roomBox), roomBox);
+        form.addRow(3, labelFor("N_ights:", nightsField), nightsField);
+        form.addRow(4, extrasLabel, extrasField);
+        form.addRow(5, paidLabel, paidField);
+        form.addRow(6, labelFor("No_tes:", notesArea), notesArea);
+
+        // ---- Calculate and Save buttons ----
+        Button calculateBtn = new Button("_Calculate");
+        Button saveBtn = new Button("_Save bill");
+        saveBtn.setDefaultButton(true);                            // Enter key presses Save
+        calculateBtn.setOnAction(e -> onCalculate());
+        saveBtn.setOnAction(e -> onSave());
+        HBox actionButtons = new HBox(10, calculateBtn, saveBtn);
+
+        // ---- Right-hand panel: prices and rules ----
+        Label priceTitle = new Label("Practice room prices");
+        priceTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        Label ruleDiscount = new Label(String.format("%d nights or more: %.0f%% off the room charge.",
+                Bill.DISCOUNT_MIN_NIGHTS, Bill.DISCOUNT_RATE * 100));
+        Label ruleExtras = new Label("Extras get no discount. No tax in this lab.");
+        Label ruleSession = new Label("Saved bills last only until you close the app.");
+        ruleDiscount.setWrapText(true);                            // long text wraps onto new lines
+        ruleExtras.setWrapText(true);
+        ruleSession.setWrapText(true);
+
+        VBox pricePanel = new VBox(10, priceTitle, priceList, new Separator(),
+                ruleDiscount, ruleExtras, ruleSession);
+        pricePanel.setPadding(new Insets(15));
+        pricePanel.setPrefWidth(260);
+        pricePanel.setStyle("-fx-background-color: #e8f0fb; -fx-background-radius: 8;");
+
+        // Put the form on the left and the price panel on the right.
+        HBox formRow = new HBox(20, form, pricePanel);
+        HBox.setHgrow(form, Priority.ALWAYS);
