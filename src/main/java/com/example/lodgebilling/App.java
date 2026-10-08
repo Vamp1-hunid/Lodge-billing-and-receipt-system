@@ -134,3 +134,18 @@ public class App extends Application {
         // Put the form on the left and the price panel on the right.
         HBox formRow = new HBox(20, form, pricePanel);
         HBox.setHgrow(form, Priority.ALWAYS);
+        // ---- Saved bills table ----
+        // column(...) is a helper written in piece 5g. The second part says what text to show.
+        table.getColumns().add(column("Bill", Bill::getId));
+        table.getColumns().add(column("Guest", Bill::getGuest));
+        table.getColumns().add(column("Room", b -> b.getRoom().toString()));
+        table.getColumns().add(column("Nights", b -> String.valueOf(b.getNights())));
+        table.getColumns().add(column("Total", b -> b.getCurrency().format(b.getTotal())));
+        table.getColumns().add(column("Paid", b -> b.getCurrency().format(b.getPaid())));
+        table.getColumns().add(column("Balance", b -> b.getCurrency().format(b.getBalance())));
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        table.setPlaceholder(new Label("No bills saved yet."));    // shown while the table is empty
+        table.setPrefHeight(150);
+
+        Label savedLabel = new Label("Saved bills");
+        savedLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
