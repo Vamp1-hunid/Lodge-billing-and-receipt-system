@@ -1,6 +1,7 @@
 package com.example.lodgebilling;
 
 // Imports: each line pulls in a class used below.
+
 import javafx.application.Application;               // base class of every JavaFX program
 import javafx.application.Platform;                  // lets us close the app (File > Exit)
 import javafx.beans.property.SimpleStringProperty;   // a watchable text value for table cells
@@ -24,11 +25,9 @@ public class App extends Application {
 
     // ---- Controls ----
     // These are fields (not local variables) because several methods below need to read them.
-    private final ComboBox<CurrencyType> currencyBox =
-            new ComboBox<>(FXCollections.observableArrayList(CurrencyType.values()));
+    private final ComboBox<CurrencyType> currencyBox = new ComboBox<>(FXCollections.observableArrayList(CurrencyType.values()));
     private final TextField nameField = new TextField();
-    private final ComboBox<RoomType> roomBox =
-            new ComboBox<>(FXCollections.observableArrayList(RoomType.values()));
+    private final ComboBox<RoomType> roomBox = new ComboBox<>(FXCollections.observableArrayList(RoomType.values()));
     private final TextField nightsField = new TextField();
     private final TextField extrasField = new TextField();
     private final TextField paidField = new TextField();
@@ -49,8 +48,7 @@ public class App extends Application {
         Menu fileMenu = new Menu("_File", null, exitItem);
 
         MenuItem aboutItem = new MenuItem("About");
-        aboutItem.setOnAction(e -> new Alert(Alert.AlertType.INFORMATION,
-                "Lodge Billing Lab\nBills are kept only until you close the app.").showAndWait());
+        aboutItem.setOnAction(e -> new Alert(Alert.AlertType.INFORMATION, "Lodge Billing Lab\nBills are kept only until you close the app.").showAndWait());
         Menu helpMenu = new Menu("_Help", null, aboutItem);
 
         MenuBar menuBar = new MenuBar(fileMenu, helpMenu);
@@ -62,10 +60,8 @@ public class App extends Application {
         ToolBar toolBar = new ToolBar(newGuestBtn, viewReceiptBtn, deleteBtn);
 
         // These two buttons are greyed out until a row is selected in the table.
-        viewReceiptBtn.disableProperty().bind(
-                table.getSelectionModel().selectedItemProperty().isNull());
-        deleteBtn.disableProperty().bind(
-                table.getSelectionModel().selectedItemProperty().isNull());
+        viewReceiptBtn.disableProperty().bind(table.getSelectionModel().selectedItemProperty().isNull());
+        deleteBtn.disableProperty().bind(table.getSelectionModel().selectedItemProperty().isNull());
 
         // Each button calls one of the action methods written in piece 5g.
         newGuestBtn.setOnAction(e -> onNewGuest());
@@ -117,16 +113,14 @@ public class App extends Application {
         // ---- Right-hand panel: prices and rules ----
         Label priceTitle = new Label("Practice room prices");
         priceTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        Label ruleDiscount = new Label(String.format("%d nights or more: %.0f%% off the room charge.",
-                Bill.DISCOUNT_MIN_NIGHTS, Bill.DISCOUNT_RATE * 100));
+        Label ruleDiscount = new Label(String.format("%d nights or more: %.0f%% off the room charge.", Bill.DISCOUNT_MIN_NIGHTS, Bill.DISCOUNT_RATE * 100));
         Label ruleExtras = new Label("Extras get no discount. No tax in this lab.");
         Label ruleSession = new Label("Saved bills last only until you close the app.");
         ruleDiscount.setWrapText(true);                            // long text wraps onto new lines
         ruleExtras.setWrapText(true);
         ruleSession.setWrapText(true);
 
-        VBox pricePanel = new VBox(10, priceTitle, priceList, new Separator(),
-                ruleDiscount, ruleExtras, ruleSession);
+        VBox pricePanel = new VBox(10, priceTitle, priceList, new Separator(), ruleDiscount, ruleExtras, ruleSession);
         pricePanel.setPadding(new Insets(15));
         pricePanel.setPrefWidth(260);
         pricePanel.setStyle("-fx-background-color: #e8f0fb; -fx-background-radius: 8;");
@@ -153,8 +147,7 @@ public class App extends Application {
         updateCurrencyLabels();
 
         // ---- Put everything in the window ----
-        VBox content = new VBox(10, title, subtitle, formRow, actionButtons,
-                statusLabel, savedLabel, table);
+        VBox content = new VBox(10, title, subtitle, formRow, actionButtons, statusLabel, savedLabel, table);
         content.setPadding(new Insets(15));
         VBox.setVgrow(table, Priority.ALWAYS);                     // the table takes spare height
 
@@ -271,3 +264,88 @@ public class App extends Application {
         paidField.clear();
         notesArea.clear();
     }
+    // ===== Action methods (called by the buttons) =====
+
+    // Calculate: shows the total and balance WITHOUT saving anything.
+    private void onCalculate() {
+        Bill preview = readBill("PREVIEW");                        // a temporary bill, never stored
+        if (preview == null) return;                               // validation failed, message already shown
+        CurrencyType c = preview.getCurrency();
+        showSuccess("Total: " + c.format(preview.getTotal()) + "    Balance: " + c.format(preview.getBalance()));
+    }
+
+    // Save bill: validate, store the bill, then show its receipt.
+    private void onSave() {
+        // String.format("B%03d", 3) gives "B003": B, then the number padded with zeros to 3 digits.
+        Bill bill = readBill(String.format("B%03d", nextBillNumber));
+        if (bill == null) return;
+
+        nextBillNumber++;
+        bills.add(bill);                                           // the table updates by itself
+        showSuccess("Saved " + bill.getId() + ": Balance: " + bill.getCurrency().format(bill.getBalance()));
+        clearForm();
+        showReceipt(bill);                                         // the receipt pops up straight away
+    }
+
+    // New guest: clear the form and message.
+    private void onNewGuest() {
+        clearForm();
+        statusLabel.setText("");
+        nameField.requestFocus();
+    }
+
+    // View receipt: reopen the receipt of the selected row.
+    private void onViewReceipt() {
+        Bill selected = table.getSelectionModel().getSelectedItem();
+        if (selected != null) showReceipt(selected);
+    }
+
+    // Delete selected bill: ask first, delete only on Yes.
+    private void onDelete() {
+        Bill selected = table.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Delete bill " + selected.getId() + " for " + selected.getGuest() + "?", ButtonType.YES, ButtonType.NO);
+        confirm.setHeaderText("Confirm deletion");
+        confirm.showAndWait().filter(b -> b == ButtonType.YES).ifPresent(b -> bills.remove(selected));
+    }
+
+    // Shows a receipt in a pop-up window. A read-only text area with a monospaced font
+    // keeps the columns of the receipt lined up.
+    private void showReceipt(Bill bill) {
+        TextArea receiptText = new TextArea(bill.buildReceipt());
+        receiptText.setEditable(false);
+        receiptText.setWrapText(true);
+        receiptText.setStyle("-fx-font-family: 'Monospaced';");
+        receiptText.setPrefColumnCount(38);
+        receiptText.setPrefRowCount(20);
+
+        Alert dialog = new Alert(Alert.AlertType.INFORMATION);
+        dialog.setTitle("Receipt");
+        dialog.setHeaderText("Receipt for bill " + bill.getId());
+        dialog.getDialogPane().setContent(receiptText);
+        dialog.showAndWait();                                      // waits until the user closes it
+    }
+
+    // Makes a label with a keyboard shortcut. The underscore marks the shortcut letter
+    // (Alt + that letter), and setLabelFor sends the cursor to the matching control.
+    private Label labelFor(String text, Control control) {
+        Label label = new Label(text);
+        label.setMnemonicParsing(true);
+        label.setLabelFor(control);
+        return label;
+    }
+
+    // Builds one table column. "getter" is a small function that, given a Bill,
+    // returns the text to show in this column.
+    private TableColumn<Bill, String> column(String title, Function<Bill, String> getter) {
+        TableColumn<Bill, String> col = new TableColumn<>(title);
+        col.setCellValueFactory(cell -> new SimpleStringProperty(getter.apply(cell.getValue())));
+        return col;
+    }
+
+    // Entry point of App. Launcher calls this, and launch() starts JavaFX, which calls start().
+    public static void main(String[] args) {
+        launch(args);
+    }
+}   // <- end of the App class
