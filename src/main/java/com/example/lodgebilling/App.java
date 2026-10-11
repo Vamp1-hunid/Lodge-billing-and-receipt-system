@@ -1,5 +1,7 @@
 package com.example.lodgebilling;
-
+import com.example.lodgebilling.model.Bill;
+import com.example.lodgebilling.model.CurrencyType;
+import com.example.lodgebilling.model.RoomType;
 // Imports: each line pulls in a class used below.
 
 import javafx.application.Application;               // base class of every JavaFX program
